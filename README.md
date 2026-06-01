@@ -1,3 +1,5 @@
+DOCUMENTAÇÃO E CÓDIGO GERADO COM O AUXILIO DO MODELO GEMINI 3.1 PRO THINKING:EXTENDED
+
 # Agente Semântico com Gemma e SPARQLWrapper
 
 Este é um projeto em Python focado na criação de agentes baseados no framework [LangChain](https://python.langchain.com/), utilizando a biblioteca `google-genai` para acessar modelos da família Gemma (especificamente configurado para o `gemma4-27b`) e integrando a biblioteca `SPARQLWrapper` para realizar consultas em grafos de conhecimento na Web Semântica.
