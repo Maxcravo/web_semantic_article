@@ -42,9 +42,12 @@ def main():
             if not user_input.strip():
                 continue
                 
-            # Invocar a execução da query
+            # Invocar a execução da query com contexto de sessão (Memória)
             print("\n[Pensando...]")
-            response = agent_executor.invoke({"input": user_input})
+            response = agent_executor.invoke(
+                {"input": user_input},
+                config={"configurable": {"session_id": "sessao_usuario_1"}}
+            )
             
             # Extrai o output final do modelo
             print(f"\nAgente: {response.get('output')}\n")

@@ -4,3 +4,5 @@ langchain-google-genai
 google-genai
 SPARQLWrapper
 python-dotenv
+faiss-cpu
+langchain-community

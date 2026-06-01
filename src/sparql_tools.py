@@ -41,3 +41,54 @@ def execute_sparql_query(query: str) -> str:
         
     except Exception as e:
         return f"Erro ao executar a consulta SPARQL: {str(e)}"
+
+@tool
+def format_as_csv(data_string: str) -> str:
+    """
+    Converte os resultados da execução de uma consulta (em formato string de dicionários) para CSV.
+    
+    Args:
+        data_string: A string contendo as linhas de dados (normalmente a saída direta de `execute_sparql_query`).
+    """
+    import csv
+    import io
+    import ast
+    
+    try:
+        lines = [line.strip() for line in data_string.strip().split('\n') if line.strip()]
+        data = []
+        for line in lines:
+            try:
+                row = ast.literal_eval(line)
+                if isinstance(row, dict):
+                    data.append(row)
+            except Exception:
+                pass
+                
+        if not data:
+            return "Erro: Não foi possível parsear os dados para conversão CSV."
+
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
+        return output.getvalue()
+    except Exception as e:
+        return f"Erro ao formatar para CSV: {str(e)}"
+
+@tool
+def save_to_file(content: str, filename: str) -> str:
+    """
+    Salva uma string (texto livre, CSV ou JSON) em um arquivo no disco.
+    Utilize quando o usuário pedir explicitamente para salvar um arquivo.
+    
+    Args:
+        content: O conteúdo em texto a ser salvo.
+        filename: O nome/caminho do arquivo (ex: 'resultados.csv', 'dados.json').
+    """
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return f"Arquivo '{filename}' salvo com sucesso."
+    except Exception as e:
+        return f"Erro ao salvar o arquivo: {str(e)}"

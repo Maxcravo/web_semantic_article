@@ -1,0 +1,26 @@
+# Contexto da Ontologia DBpedia (Exemplo Prático)
+
+Este documento descreve como as informações estão estruturadas na DBpedia para auxiliar o modelo na formulação de consultas SPARQL.
+
+## Filmes (Movies)
+- A classe padrão para representar um filme é `dbo:Film`.
+- O nome/título do filme está na propriedade `rdfs:label`.
+- O diretor de um filme é indicado pela propriedade `dbo:director`.
+- Os atores principais são indicados pela propriedade `dbo:starring`.
+- A data de lançamento de um filme é indicada por `dbo:releaseDate`.
+
+## Pessoas (Persons)
+- A classe padrão para representar uma pessoa é `dbo:Person`.
+- A data de nascimento de uma pessoa é representada por `dbo:birthDate`.
+- O local de nascimento é representado por `dbo:birthPlace`.
+- O nome de uma pessoa está na propriedade `rdfs:label` ou `foaf:name`.
+
+## Regras de Prefixo (Namespaces)
+Para consultas SPARQL na DBpedia, os seguintes prefixos são os mais comuns:
+- PREFIX dbo: <http://dbpedia.org/ontology/>
+- PREFIX dbr: <http://dbpedia.org/resource/>
+- PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+- PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+## Filtros de Linguagem
+- Ao utilizar `rdfs:label`, é importante filtrar pela linguagem inglesa adicionando `FILTER(lang(?label) = 'en')`, ou `pt` para português.
