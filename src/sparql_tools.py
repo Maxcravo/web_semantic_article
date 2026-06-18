@@ -1,22 +1,31 @@
 import os
+from typing import Literal
 from langchain_core.tools import tool
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-# Define o endpoint a ser utilizado (por padrão DBpedia)
-DEFAULT_ENDPOINT = os.getenv("SPARQL_ENDPOINT", "http://dbpedia.org/sparql")
+# Define os endpoints a serem utilizados
+DBPEDIA_ENDPOINT = os.getenv("SPARQL_ENDPOINT", "http://dbpedia.org/sparql")
+WIKIDATA_ENDPOINT = os.getenv("WIKIDATA_ENDPOINT", "https://query.wikidata.org/sparql")
+
+ENDPOINTS = {
+    "dbpedia": DBPEDIA_ENDPOINT,
+    "wikidata": WIKIDATA_ENDPOINT
+}
 
 @tool
-def execute_sparql_query(query: str) -> str:
+def execute_sparql_query(query: str, endpoint_name: Literal["dbpedia", "wikidata"] = "dbpedia") -> str:
     """
     Executa uma consulta SPARQL em um endpoint da Web Semântica.
     Utilize esta ferramenta para buscar dados estruturados, descobrir relações e extrair entidades de grafos de conhecimento.
     
     Args:
         query: Uma string contendo a consulta SPARQL estrita e válida.
+        endpoint_name: O nome do endpoint SPARQL a ser consultado ('dbpedia' ou 'wikidata'). Padrão: 'dbpedia'.
     """
     try:
+        endpoint_url = ENDPOINTS.get(endpoint_name, DBPEDIA_ENDPOINT)
         # Configura a conexão
-        sparql = SPARQLWrapper(DEFAULT_ENDPOINT)
+        sparql = SPARQLWrapper(endpoint_url)
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
         

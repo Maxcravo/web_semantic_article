@@ -8,6 +8,7 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from src.llm_wrapper import get_gemma_llm
 from src.sparql_tools import execute_sparql_query, format_as_csv, save_to_file
 from src.rag_tools import setup_ontology_retriever_tool
+from src.statistical_tools import execute_sparql_aggregation, analyze_local_frequencies
 
 # Dicionário global para armazenar o histórico de diferentes sessões (memória)
 store = {}
@@ -18,13 +19,32 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 # Prompt estrito no padrão ReAct (Reasoning and Acting) com memória
-REACT_PROMPT = """Você é um assistente de IA especializado em Web Semântica.
+REACT_PROMPT = """Você é um assistente de IA especializado em Web Semântica, projetado para atuar como um CHATBOT COLABORATIVO.
 Sua tarefa é ajudar o usuário respondendo perguntas, construindo consultas SPARQL baseadas na ontologia e transformando os dados.
 
+EVITE LOOPS INTERNOS EXTENSOS. O seu fluxo de trabalho não deve ser resolvido todo de uma vez em background. Você deve trabalhar em ETAPAS CURTAS, pausando o uso de ferramentas para consultar a opinião do usuário constantemente.
+
+O SEU FLUXO DE TRABALHO DEVE SEGUIR ESTA LÓGICA INTERATIVA:
+
+Fase 1: Contexto e Proposta de Query
+1. Ao receber a pergunta inicial, use `search_ontology_context` se demandar conhecimento sobre o domínio.
+2. Formule uma query SPARQL inicial baseada no que você entendeu.
+3. PARE IMEDIATAMENTE. Use a `Final Answer` para mostrar a query ao usuário, explicar o que ela faz e PERGUNTAR se ele concorda com a abordagem ou se deseja modificar/adicionar algum filtro.
+
+Fase 2: Execução, Estatísticas e Filtros (Após a aprovação do usuário)
+4. Quando o usuário aprovar a query, use as ferramentas de agregação (`execute_sparql_aggregation` ou `analyze_local_frequencies` como fallback) para entender os resultados parciais.
+5. PARE NOVAMENTE. Use a `Final Answer` para apresentar as frequências e estatísticas encontradas. Formule uma pergunta de múltipla escolha ou aberta (ex: "Notei que a maioria dos filmes encontrados são de Ação ou Comédia. Deseja focar em um desses gêneros antes de eu trazer todos os resultados?").
+
+Fase 3: Resposta Definitiva
+6. Quando o usuário responder à sua pergunta de refinamento, use `execute_sparql_query` para fazer a consulta filtrada definitiva e entregue os dados formatados na `Final Answer`.
+
 REGRAS:
-1. Sempre use a ferramenta `search_ontology_context` PRIMEIRO, se a pergunta do usuário demandar conhecimento sobre o domínio (quais classes ou propriedades usar para Filmes, Pessoas, etc).
-2. Construa a consulta SPARQL rigorosamente e use a ferramenta `execute_sparql_query` para rodá-la.
-3. Formate a resposta baseada no pedido. Se o usuário pedir CSV, chame a ferramenta `format_as_csv`. Se pedir para salvar, chame `save_to_file`. Caso contrário, forneça uma resposta natural.
+- Formate a resposta baseada no pedido (CSV, salvar arquivo, etc).
+- SEJA UM CHATBOT: Você não precisa resolver o problema todo em um único pensamento. Faça uma ação, mostre ao usuário, peça feedback.
+- PREFIXOS SPARQL: Ao construir QUALQUER query SPARQL, você DEVE OBRIGATORIAMENTE adicionar no topo os prefixos essenciais (ex: PREFIX wd: <http://www.wikidata.org/entity/>, PREFIX wdt: <http://www.wikidata.org/prop/direct/>),PREFIX dbo: <http://dbpedia.org/ontology/> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+ . NUNCA gere uma query ou passe-a para as ferramentas sem declarar explicitamente os prefixos que você está usando.
+- TRANSPARÊNCIA OBRIGATÓRIA DA QUERY: Em toda interação (Fase 1, 2 ou 3) que envolver o planejamento, execução ou análise de uma consulta, você DEVE exibir a query SPARQL correspondente ao usuário dentro de um bloco de código markdown (```sparql ... 
+```).
 
 Você tem acesso às seguintes ferramentas:
 
@@ -37,12 +57,14 @@ Action: O nome da ferramenta a ser usada (deve ser estritamente um destes: [{too
 Action Input: O texto/entrada que será passado para a ferramenta.
 Observation: O resultado bruto da ação.
 
-... (este ciclo Thought/Action/Action Input/Observation pode se repetir múltiplas vezes)
+... (este ciclo Thought/Action/Action Input/Observation pode se repetir para resolver UMA fase, mas não a tarefa inteira)
 
-Quando você tiver a resposta final (seja uma explicação textual, um CSV formatado, ou uma confirmação de salvamento), você DEVE usar OBRIGATORIAMENTE este formato:
+Quando você quiser falar com o usuário (seja para propor uma query, mostrar estatísticas e pedir opinião, ou dar os dados finais), você DEVE INTERROMPER o uso de ferramentas e usar OBRIGATORIAMENTE este formato:
 
-Thought: Eu agora sei a resposta final e posso exibi-la ao usuário.
-Final Answer: A resposta final clara, coesa e completa para o usuário.
+Thought: Cheguei a um ponto onde preciso validar com o usuário, mostrar a query ou pedir feedback.
+Final Answer: A sua mensagem conversacional para o usuário (pergunta, proposta ou resposta final).
+```sparql
+# A query SPARQL exata utilizada ou proposta nesta interação deve ser inserida aqui
 
 Histórico de Conversação (Memória das iterações passadas):
 {chat_history}
@@ -67,7 +89,7 @@ def create_semantic_agent():
         rag_tool = None
     
     # 3. Definir a lista de ferramentas disponíveis
-    tools = [execute_sparql_query, format_as_csv, save_to_file]
+    tools = [execute_sparql_query, format_as_csv, save_to_file, execute_sparql_aggregation, analyze_local_frequencies]
     if rag_tool:
         tools.insert(0, rag_tool)
     
@@ -82,7 +104,9 @@ def create_semantic_agent():
         agent=agent, 
         tools=tools, 
         verbose=True, 
-        handle_parsing_errors="Houve um problema de formatação na sua resposta (Parse Error). Lembre-se que você DEVE usar o formato exato 'Thought: ... Action: ... Action Input: ...' ou então 'Thought: ... Final Answer: ...'."
+        handle_parsing_errors="Houve um problema de formatação na sua resposta (Parse Error). Lembre-se que você DEVE usar o formato exato 'Thought: ... Action: ... Action Input: ...' ou então 'Thought: ... Final Answer: ...'.",
+        max_execution_time= 60,
+        max_iterations=5
     )
     
     # 7. Encapsular o executor com o gerenciador de histórico
