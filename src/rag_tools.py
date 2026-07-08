@@ -1,7 +1,7 @@
 import os
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_classic.tools.retriever import create_retriever_tool
 
@@ -15,12 +15,16 @@ def setup_ontology_retriever_tool():
     Se o índice já existir, carrega do disco para evitar recriar os embeddings.
     Retorna uma 'tool' nativa do LangChain para o agente usá-la como um RAG.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("A variável de ambiente 'GEMINI_API_KEY' não está definida.")
+    # api_key = os.getenv("GEMINI_API_KEY")
+    # if not api_key:
+    #     raise ValueError("A variável de ambiente 'GEMINI_API_KEY' não está definida.")
 
     # 1. Definir o modelo de embeddings
-    embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=api_key)
+    embeddings = HuggingFaceEmbeddings(
+        model_name="jinaai/jina-embeddings-v5-text-small",
+        model_kwargs={"trust_remote_code": True},
+        encode_kwargs={"task": "retrieval"}
+    )
     
     # 2. Verificar se o índice FAISS já existe localmente
     if os.path.exists(FAISS_INDEX_DIR):

@@ -3,7 +3,7 @@ from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 
 
-def get_gemma_llm(model_name: str = "gemma-4-31b-it", temperature: float = 0.4, timeoutTime = 90 ):
+def get_gemma_llm(model_name: str = "gemma-4-31b-it", temperature: float = 0.4, timeoutTime = 190 ):
     load_dotenv()
     api_key = os.getenv("GEMINI_API_KEY")
     print(api_key)

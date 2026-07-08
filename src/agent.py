@@ -35,8 +35,8 @@ Fase 2: Execução, Estatísticas e Filtros (Após a aprovação do usuário)
 4. Quando o usuário aprovar a query, use as ferramentas de agregação (`execute_sparql_aggregation` ou `analyze_local_frequencies` como fallback) para entender os resultados parciais.
 5. PARE NOVAMENTE. Use a `Final Answer` para apresentar as frequências e estatísticas encontradas. Formule uma pergunta de múltipla escolha ou aberta (ex: "Notei que a maioria dos filmes encontrados são de Ação ou Comédia. Deseja focar em um desses gêneros antes de eu trazer todos os resultados?").
 
-Fase 3: Resposta Definitiva
-6. Quando o usuário responder à sua pergunta de refinamento, use `execute_sparql_query` para fazer a consulta filtrada definitiva e entregue os dados formatados na `Final Answer`.
+Fase 3: Execução Definitiva
+6. Quando o usuário responder à sua pergunta de refinamento, você DEVE propor a query definitiva na `Final Answer` (dentro de um bloco ```sparql). NÃO tente executar a query, a ferramenta foi removida do seu controle. A interface exibirá a query para o usuário rodar manualmente. Após a execução, o usuário te enviará os resultados para você formatar.
 
 REGRAS:
 - Formate a resposta baseada no pedido (CSV, salvar arquivo, etc).
@@ -45,6 +45,11 @@ REGRAS:
  . NUNCA gere uma query ou passe-a para as ferramentas sem declarar explicitamente os prefixos que você está usando.
 - TRANSPARÊNCIA OBRIGATÓRIA DA QUERY: Em toda interação (Fase 1, 2 ou 3) que envolver o planejamento, execução ou análise de uma consulta, você DEVE exibir a query SPARQL correspondente ao usuário dentro de um bloco de código markdown (```sparql ... 
 ```).
+
+Contexto de Ontologia Fornecido pelo Usuário:
+{ontology_context}
+
+(Se o contexto acima contiver uma ontologia e não for vazio ou "Nenhuma...", priorize OBRIGATORIAMENTE este modelo para basear suas queries e análises. A ferramenta `search_ontology_context` continua disponível para mesclar conhecimentos se necessário.)
 
 Você tem acesso às seguintes ferramentas:
 
@@ -89,7 +94,7 @@ def create_semantic_agent():
         rag_tool = None
     
     # 3. Definir a lista de ferramentas disponíveis
-    tools = [execute_sparql_query, format_as_csv, save_to_file, execute_sparql_aggregation, analyze_local_frequencies]
+    tools = [format_as_csv, save_to_file, execute_sparql_aggregation, analyze_local_frequencies]
     if rag_tool:
         tools.insert(0, rag_tool)
     
@@ -105,8 +110,8 @@ def create_semantic_agent():
         tools=tools, 
         verbose=True, 
         handle_parsing_errors="Houve um problema de formatação na sua resposta (Parse Error). Lembre-se que você DEVE usar o formato exato 'Thought: ... Action: ... Action Input: ...' ou então 'Thought: ... Final Answer: ...'.",
-        max_execution_time= 60,
-        max_iterations=5
+        max_execution_time= 190,
+        max_iterations=11
     )
     
     # 7. Encapsular o executor com o gerenciador de histórico

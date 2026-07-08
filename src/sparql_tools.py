@@ -12,16 +12,7 @@ ENDPOINTS = {
     "wikidata": WIKIDATA_ENDPOINT
 }
 
-@tool
-def execute_sparql_query(query: str, endpoint_name: Literal["dbpedia", "wikidata"] = "dbpedia") -> str:
-    """
-    Executa uma consulta SPARQL em um endpoint da Web Semântica.
-    Utilize esta ferramenta para buscar dados estruturados, descobrir relações e extrair entidades de grafos de conhecimento.
-    
-    Args:
-        query: Uma string contendo a consulta SPARQL estrita e válida.
-        endpoint_name: O nome do endpoint SPARQL a ser consultado ('dbpedia' ou 'wikidata'). Padrão: 'dbpedia'.
-    """
+def run_query_manually(query: str, endpoint_name: str = "dbpedia") -> str:
     try:
         endpoint_url = ENDPOINTS.get(endpoint_name, DBPEDIA_ENDPOINT)
         # Configura a conexão
@@ -50,6 +41,18 @@ def execute_sparql_query(query: str, endpoint_name: Literal["dbpedia", "wikidata
         
     except Exception as e:
         return f"Erro ao executar a consulta SPARQL: {str(e)}"
+
+@tool
+def execute_sparql_query(query: str, endpoint_name: Literal["dbpedia", "wikidata"] = "dbpedia") -> str:
+    """
+    Executa uma consulta SPARQL em um endpoint da Web Semântica.
+    Utilize esta ferramenta para buscar dados estruturados, descobrir relações e extrair entidades de grafos de conhecimento.
+    
+    Args:
+        query: Uma string contendo a consulta SPARQL estrita e válida.
+        endpoint_name: O nome do endpoint SPARQL a ser consultado ('dbpedia' ou 'wikidata'). Padrão: 'dbpedia'.
+    """
+    return run_query_manually(query, endpoint_name)
 
 @tool
 def format_as_csv(data_string: str) -> str:
